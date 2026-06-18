@@ -2,36 +2,69 @@ import streamlit as st
 import pdfplumber
 import pandas as pd
 import re
-import streamlit_analytics2 as streamlit_analytics
+import streamlit.components.v1 as components
 
-# Configuración de la página
+# ----------------------------------
+# CONFIGURACIÓN DE LA PÁGINA
+# ----------------------------------
+
 st.set_page_config(
-    page_title="PDF Coordinate Extractor",
+    page_title="Extractor de Coordenadas PDF",
     page_icon="🌎",
     layout="wide"
 )
 
-# Analytics
-with streamlit_analytics.track():
+# ----------------------------------
+# GOOGLE ANALYTICS GA4
+# ----------------------------------
 
-    # Título
-    st.title("🌎 Extractor de coordenadas PDF")
+components.html(
+    """
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-37RXM995LJ"></script>
 
-    st.write(
-        "Extrae coordenadas UTM desde documentos PDF y exporta resultados."
-    )
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
 
-    # Cargar PDF
-    archivo = st.file_uploader(
-        "Seleccione un archivo PDF",
-        type=["pdf"]
-    )
+      gtag('config', 'G-37RXM995LJ');
+    </script>
+    """,
+    height=0
+)
 
-    if archivo:
+# ----------------------------------
+# TÍTULO
+# ----------------------------------
 
-        texto = ""
+st.title("🌎 Extractor de coordenadas PDF")
+
+st.write(
+    "Extrae coordenadas UTM desde documentos PDF y exporta los resultados a CSV."
+)
+
+# ----------------------------------
+# CARGAR PDF
+# ----------------------------------
+
+archivo = st.file_uploader(
+    "Seleccione un archivo PDF",
+    type=["pdf"]
+)
+
+# ----------------------------------
+# PROCESAMIENTO
+# ----------------------------------
+
+if archivo:
+
+    texto = ""
+
+    try:
 
         with pdfplumber.open(archivo) as pdf:
+
             for pagina in pdf.pages:
 
                 contenido = pagina.extract_text()
@@ -47,7 +80,10 @@ with streamlit_analytics.track():
             height=250
         )
 
-        # Buscar coordenadas UTM con decimales
+        # ----------------------------------
+        # BUSCAR COORDENADAS UTM
+        # ----------------------------------
+
         patron_utm = r'(\d{6,8}\.\d+)\s+(\d{6,8}\.\d+)'
 
         coordenadas = re.findall(
@@ -63,7 +99,7 @@ with streamlit_analytics.track():
             )
 
             st.success(
-                f"Se encontraron {len(df)} coordenadas."
+                f"✅ Se encontraron {len(df)} coordenadas."
             )
 
             st.subheader("📍 Coordenadas encontradas")
@@ -73,7 +109,10 @@ with streamlit_analytics.track():
                 use_container_width=True
             )
 
-            # CSV
+            # ----------------------------------
+            # DESCARGA CSV
+            # ----------------------------------
+
             csv = df.to_csv(
                 index=False
             ).encode("utf-8")
@@ -88,19 +127,31 @@ with streamlit_analytics.track():
         else:
 
             st.warning(
-                "No se encontraron coordenadas con el patrón configurado."
+                "⚠️ No se encontraron coordenadas con el patrón configurado."
             )
 
-    # Créditos
-    st.markdown("---")
+    except Exception as e:
 
-    st.markdown(
-        """
-        ### 👨‍💻 Desarrollado por
+        st.error(
+            f"Error al procesar el PDF: {e}"
+        )
 
-        **Neemias Villalovos Gonzales**  
-        Especialista SIG y Ordenamiento Territorial
+# ----------------------------------
+# CRÉDITOS
+# ----------------------------------
 
-        🌐 https://neemiasvillalovos.com
-        """
-    )
+st.markdown("---")
+
+st.markdown(
+    """
+### 👨‍💻 Elaborado por
+
+**Neemias Villalovos Gonzales**  
+Especialista SIG y Ordenamiento Territorial
+
+🌐 https://neemiasvillalovos.com
+
+---
+Versión 1.0
+"""
+)
