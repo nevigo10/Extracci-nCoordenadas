@@ -5,7 +5,7 @@ import re
 import streamlit.components.v1 as components
 
 # ----------------------------------
-# CONFIGURACIÓN DE LA PÁGINA
+# CONFIGURACIÓN
 # ----------------------------------
 
 st.set_page_config(
@@ -15,19 +15,16 @@ st.set_page_config(
 )
 
 # ----------------------------------
-# GOOGLE ANALYTICS GA4
+# GOOGLE ANALYTICS
 # ----------------------------------
 
 components.html(
     """
-    <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-37RXM995LJ"></script>
-
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-
       gtag('config', 'G-37RXM995LJ');
     </script>
     """,
@@ -35,18 +32,14 @@ components.html(
 )
 
 # ----------------------------------
-# TÍTULO
+# INTERFAZ
 # ----------------------------------
 
-st.title("🌎 Extractor de coordenadas PDF")
+st.title("🌎 Extractor de Coordenadas PDF")
 
 st.write(
-    "Extrae coordenadas UTM desde documentos PDF y exporta los resultados a CSV."
+    "Extrae coordenadas UTM desde documentos PDF y exporta resultados."
 )
-
-# ----------------------------------
-# CARGAR PDF
-# ----------------------------------
 
 archivo = st.file_uploader(
     "Seleccione un archivo PDF",
@@ -80,38 +73,74 @@ if archivo:
             height=250
         )
 
+        coordenadas_limpias = []
+
         # ----------------------------------
-        # BUSCAR COORDENADAS UTM
+        # FORMATO:
+        # 1550555.850 546436.452
+        # 1,748,334.31 409,023.26
         # ----------------------------------
 
-        patron_utm = r'(\d{6,8}\.\d+)\s+(\d{6,8}\.\d+)'
+        patron_general = r'([\d,]+\.\d+)\s+([\d,]+\.\d+)'
 
-        coordenadas = re.findall(
-            patron_utm,
+        coincidencias = re.findall(
+            patron_general,
             texto
         )
 
-        if coordenadas:
+        for y, x in coincidencias:
+
+            try:
+
+                y = float(
+                    y.replace(",", "")
+                )
+
+                x = float(
+                    x.replace(",", "")
+                )
+
+                coordenadas_limpias.append(
+                    [y, x]
+                )
+
+            except:
+                pass
+
+        # ----------------------------------
+        # ELIMINAR DUPLICADOS
+        # ----------------------------------
+
+        coordenadas_limpias = list(
+            dict.fromkeys(
+                tuple(i) for i in coordenadas_limpias
+            )
+        )
+
+        if coordenadas_limpias:
 
             df = pd.DataFrame(
-                coordenadas,
-                columns=["NORTE_Y", "ESTE_X"]
+                coordenadas_limpias,
+                columns=[
+                    "NORTE_Y",
+                    "ESTE_X"
+                ]
             )
 
             st.success(
                 f"✅ Se encontraron {len(df)} coordenadas."
             )
 
-            st.subheader("📍 Coordenadas encontradas")
+            st.subheader(
+                "📍 Coordenadas encontradas"
+            )
 
             st.dataframe(
                 df,
                 use_container_width=True
             )
 
-            # ----------------------------------
-            # DESCARGA CSV
-            # ----------------------------------
+            # CSV
 
             csv = df.to_csv(
                 index=False
@@ -127,13 +156,13 @@ if archivo:
         else:
 
             st.warning(
-                "⚠️ No se encontraron coordenadas con el patrón configurado."
+                "⚠️ No se encontraron coordenadas."
             )
 
     except Exception as e:
 
         st.error(
-            f"Error al procesar el PDF: {e}"
+            f"Error al procesar PDF: {e}"
         )
 
 # ----------------------------------
@@ -152,6 +181,6 @@ Especialista SIG y Ordenamiento Territorial
 🌐 https://neemiasvillalovos.com
 
 ---
-Versión 1.0
+Versión 2.0
 """
 )
